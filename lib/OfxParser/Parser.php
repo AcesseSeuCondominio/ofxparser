@@ -39,8 +39,7 @@ class Parser
      */
     public function loadFromString($ofxContent)
     {
-        $ofxEncoding = mb_detect_encoding($ofxContent);
-        $ofxContent = mb_convert_encoding($ofxContent, $ofxEncoding, "ISO-8859-1");
+        $ofxContent = mb_convert_encoding($ofxContent, 'UTF-8', $this->detectEncodingFromHeader($ofxContent));
 
         $sgmlStart = stripos($ofxContent, '<OFX>');
         $ofxHeader = trim(substr($ofxContent, 0, $sgmlStart));
@@ -114,5 +113,29 @@ class Parser
         }
 
         return trim($xml);
+    }
+
+    /**
+    * Detect encoding from header CHARSET from OFX file
+    * 
+    * @param string $header Header of the OFX file
+    * @return string Encoding detected (default: Windows-1252)
+    */
+    private function detectEncodingFromHeader($header)
+    {
+        if (preg_match('/CHARSET:(\d+)/i', $header, $matches)) {
+            $charset = trim($matches[1]);
+            
+            $charsetMap = [
+                '65001' => 'UTF-8',
+                '28591' => 'UTF-8',
+            ];
+            
+            if (isset($charsetMap[$charset])) {
+                return $charsetMap[$charset];
+            }
+        }
+        
+        return 'Windows-1252';
     }
 }
