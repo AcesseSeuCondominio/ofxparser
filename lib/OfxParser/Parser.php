@@ -50,7 +50,10 @@ class Parser
 
         // WHEN TYPE IS EMPTY Wiil BE FILL WITH OTHER
         $enR = str_replace("<TRNTYPE> ", "<TRNTYPE>OTHER", $ofxSgml);
-        
+
+        // Fecha tag MEMO vazia (ex.: OFX Santander) para evitar erro de parse XML
+        $enR = preg_replace('/<MEMO>\s*<\/STMTTRN>/s', '<MEMO></MEMO></STMTTRN>', $enR);
+
         $ofxXml = $this->convertSgmlToXml($enR);
         $xml = $this->xmlLoadString($ofxXml);
 
@@ -88,7 +91,9 @@ class Parser
         $trimmed = trim($line);
 
         // Empty opening tag (e.g. <MEMO> with no content) - close it so XML is valid (e.g. Santander OFX)
-        if (preg_match('/^<([A-Za-z0-9.]+)>\s*$/', $trimmed, $emptyMatches)) {
+        // Only apply to leaf tags that can be empty - NOT structural tags like OFX, STMTTRN, etc.
+        $emptyLeafTags = ['MEMO', 'NAME', 'CHECKNUM', 'REFNUM'];
+        if (preg_match('/^<([A-Za-z0-9.]+)>\s*$/', $trimmed, $emptyMatches) && in_array($emptyMatches[1], $emptyLeafTags)) {
             return "<{$emptyMatches[1]}></{$emptyMatches[1]}>";
         }
 
