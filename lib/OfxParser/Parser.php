@@ -85,10 +85,17 @@ class Parser
      */
     private function closeUnclosedXmlTags($line)
     {
+        $trimmed = trim($line);
+
+        // Empty opening tag (e.g. <MEMO> with no content) - close it so XML is valid (e.g. Santander OFX)
+        if (preg_match('/^<([A-Za-z0-9.]+)>\s*$/', $trimmed, $emptyMatches)) {
+            return "<{$emptyMatches[1]}></{$emptyMatches[1]}>";
+        }
+
         // Matches: <SOMETHING>blah
         // Does not match: <SOMETHING>
         // Does not match: <SOMETHING>blah</SOMETHING>
-        if (preg_match("/<([A-Za-z0-9.]+)>([\wà-úÀ-Ú0-9\.\-\_\+\, ;:\[\]\'\&\/\\\*\(\)\+\{\}\!\£\$\?=@€£#%±§~`]+)$/", trim($line), $matches)) {
+        if (preg_match("/<([A-Za-z0-9.]+)>([\wà-úÀ-Ú0-9\.\-\_\+\, ;:\[\]\'\&\/\\\*\(\)\+\{\}\!\£\$\?=@€£#%±§~`]+)$/", $trimmed, $matches)) {
             return "<{$matches[1]}>{$matches[2]}</{$matches[1]}>";
         }
         return $line;
