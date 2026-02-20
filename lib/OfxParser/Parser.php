@@ -50,10 +50,7 @@ class Parser
 
         // WHEN TYPE IS EMPTY Wiil BE FILL WITH OTHER
         $enR = str_replace("<TRNTYPE> ", "<TRNTYPE>OTHER", $ofxSgml);
-
-        // Fecha tag MEMO vazia (ex.: OFX Santander) para evitar erro de parse XML
-        $enR = preg_replace('/<MEMO>\s*<\/STMTTRN>/s', '<MEMO></MEMO></STMTTRN>', $enR);
-
+        
         $ofxXml = $this->convertSgmlToXml($enR);
         $xml = $this->xmlLoadString($ofxXml);
 
@@ -91,16 +88,22 @@ class Parser
         $trimmed = trim($line);
 
         // Empty opening tag (e.g. <MEMO> with no content) - close it so XML is valid (e.g. Santander OFX)
-        // Only apply to leaf tags that can be empty - NOT structural tags like OFX, STMTTRN, etc.
-        $emptyLeafTags = ['MEMO', 'NAME', 'CHECKNUM', 'REFNUM'];
-        if (preg_match('/^<([A-Za-z0-9.]+)>\s*$/', $trimmed, $emptyMatches) && in_array($emptyMatches[1], $emptyLeafTags)) {
-            return "<{$emptyMatches[1]}></{$emptyMatches[1]}>";
+        // Do NOT close container tags (OFX, STMTTRN, etc.) - they have child elements on following lines
+        $containerTags = [
+            'OFX', 'SIGNONMSGSRSV1', 'SONRS', 'STATUS', 'FI', 'BANKMSGSRSV1', 'STMTTRNRS',
+            'STMTRS', 'BANKACCTFROM', 'BANKTRANLIST', 'LEDGERBAL', 'STMTTRN',
+        ];
+        if (preg_match('/^<([A-Za-z0-9.]+)>\s*$/', $trimmed, $emptyMatches)) {
+            $tagName = $emptyMatches[1];
+            if (!in_array($tagName, $containerTags)) {
+                return "<{$tagName}></{$tagName}>";
+            }
         }
 
         // Matches: <SOMETHING>blah
         // Does not match: <SOMETHING>
         // Does not match: <SOMETHING>blah</SOMETHING>
-        if (preg_match("/<([A-Za-z0-9.]+)>([\wà-úÀ-Ú0-9\.\-\_\+\, ;:\[\]\'\&\/\\\*\(\)\+\{\}\!\£\$\?=@€£#%±§~`]+)$/", $trimmed, $matches)) {
+        if (preg_match("/<([A-Za-z0-9.]+)>([\wà-úÀ-Ú0-9\.\-\_\+\, ;:\[\]\'\&\/\\\*\(\)\+\{\}\!\£\$\?=@€£#%±§~`|]+)$/", $trimmed, $matches)) {
             return "<{$matches[1]}>{$matches[2]}</{$matches[1]}>";
         }
         return $line;
