@@ -112,6 +112,9 @@ class Parser
     /**
      * Convert an SGML to an XML string
      *
+     * Handles both multi-line OFX (e.g. Santander) and single-line OFX (e.g. Caixa Econômica Federal).
+     * For single-line files, inserts newlines between tags so closeUnclosedXmlTags can process each line.
+     *
      * @param string $sgml
      * @return string
      */
@@ -119,6 +122,13 @@ class Parser
     {
         $sgml = str_replace("\r\n", "\n", $sgml);
         $sgml = str_replace("\r", "\n", $sgml);
+
+        // Single-line OFX: break into lines so closeUnclosedXmlTags can process each tag
+        // Inserts newline before each < that starts a new tag (both >< and value<)
+        if (substr_count($sgml, "\n") <= 1) {
+            $sgml = preg_replace('/([^>])</', '$1' . "\n" . '<', $sgml);
+            $sgml = str_replace('><', ">\n<", $sgml);
+        }
 
         $lines = explode("\n", $sgml);
 
