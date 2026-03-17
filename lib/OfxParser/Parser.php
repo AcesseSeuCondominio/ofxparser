@@ -100,10 +100,11 @@ class Parser
             }
         }
 
-        // Matches: <SOMETHING>blah
+        // Matches: <SOMETHING>blah (value until end of line, no < inside)
         // Does not match: <SOMETHING>
         // Does not match: <SOMETHING>blah</SOMETHING>
-        if (preg_match("/<([A-Za-z0-9.]+)>([\wà-úÀ-Ú0-9\.\-\_\+\, ;:\[\]\'\&\/\\\*\(\)\+\{\}\!\£\$\?=@€£#%±§~`|]+)$/", $trimmed, $matches)) {
+        // Uses [^<]+ to allow any character in value (e.g. MEMO with accents, pipes, etc.)
+        if (preg_match('/<([A-Za-z0-9.]+)>([^<]+)$/', $trimmed, $matches)) {
             return "<{$matches[1]}>{$matches[2]}</{$matches[1]}>";
         }
         return $line;
